@@ -1,5 +1,6 @@
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
 import streamlit as st
 
 
@@ -127,7 +128,6 @@ top5_movies = (
     .head(5)
 )
 
-# 상위 5편의 영화명만 추출
 top5_movie_names = top5_movies["영화명"].tolist()
 
 # 상위 5편의 날짜별 데이터
@@ -142,7 +142,6 @@ fig_top5 = px.line(
     x="날짜",
     y="일관객",
     color="영화명",
-    markers=False,
     labels={
         "날짜": "날짜",
         "일관객": "일관객 수",
@@ -185,17 +184,106 @@ st.markdown(
 
 
 # --------------------------------------------------
-# 앞으로 추가할 그래프 영역
+# 그래프 3. 날짜별 10위권 일관객 합계
 # --------------------------------------------------
 
 st.divider()
 
-st.header("3. 다음 그래프")
+st.header("3. 날짜별 10위권 일관객 합계")
 
-st.info(
-    "앞으로 추가할 그래프를 이 구역에 넣습니다."
+# 날짜별로 그날의 10위권 일관객 합계 계산
+daily_audience = (
+    df.groupby("날짜", as_index=False)["일관객"]
+    .sum()
+    .sort_values("날짜")
 )
 
+# 일관객 합계가 가장 큰 날짜 3개
+top3_days = (
+    daily_audience
+    .nlargest(3, "일관객")
+    .sort_values("날짜")
+)
+
+# 영역 그래프
+fig_daily = px.area(
+    daily_audience,
+    x="날짜",
+    y="일관객",
+    labels={
+        "날짜": "날짜",
+        "일관객": "10위권 일관객 합계",
+    },
+    title="날짜별 10위권 일관객 합계",
+)
+
+# 영역 그래프의 기본 선 스타일
+fig_daily.update_traces(
+    line=dict(
+        color="#4C78A8",
+        width=2,
+    ),
+    fillcolor="rgba(76, 120, 168, 0.25)",
+    hovertemplate=(
+        "날짜: %{x|%Y-%m-%d}"
+        "<br>10위권 일관객 합계: %{y:,}명"
+        "<extra></extra>"
+    ),
+)
+
+# 가장 큰 3일을 점으로 표시
+fig_daily.add_trace(
+    go.Scatter(
+        x=top3_days["날짜"],
+        y=top3_days["일관객"],
+        mode="markers+text",
+        marker=dict(
+            color="#E45756",
+            size=10,
+        ),
+        text=[
+            date.strftime("%Y-%m-%d")
+            for date in top3_days["날짜"]
+        ],
+        textposition="top center",
+        textfont=dict(
+            size=12,
+            color="#E45756",
+        ),
+        name="합계 TOP 3",
+        hovertemplate=(
+            "날짜: %{x|%Y-%m-%d}"
+            "<br>10위권 일관객 합계: %{y:,}명"
+            "<extra></extra>"
+        ),
+    )
+)
+
+fig_daily.update_layout(
+    hovermode="x unified",
+    xaxis=dict(
+        tickformat="%Y-%m-%d",
+    ),
+    yaxis=dict(
+        tickformat=",",
+    ),
+    showlegend=False,
+)
+
+st.plotly_chart(
+    fig_daily,
+    use_container_width=True,
+)
+
+st.markdown(
+    "**이 그래프로 알 수 있는 것:** "
+    "하루 동안 영화 10위권 전체에서 발생한 관객 규모의 변화와 관객이 가장 많았던 날짜를 확인할 수 있습니다."
+)
+
+
+# --------------------------------------------------
+# 앞으로 추가할 그래프 영역
+# --------------------------------------------------
 
 st.divider()
 
